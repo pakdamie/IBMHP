@@ -54,17 +54,27 @@ Movement<- function(Pop){
 }
 
 Infection <- function(Pop){
-  RBC <- subset(Pop, Pop$type=='R')
+  
+  ###RBC
+  RBC <-     subset(Pop, Pop$type=='R')
+  ###Parasite
   Parasite <- subset(Pop,Pop$type=='P')
+  ###Infected
   Infected_RBC <- subset(Pop,Pop$type=='I')
   
+  
+  ###Look for the red blood cells that are in the same
+  ###square as the parasite
   id_RBC <- which(RBC[,'x'] %in%  Parasite[,'x'] &
           RBC[,'y'] %in%  Parasite[,'y'] )
   
+  ###Look for the parasites that are in the same
+  ###square as the red blood cells
   id_Parasite<- which(Parasite[,'x'] %in%  RBC[,'x'] &
-                        Parasite[,'y'] %in%  RBC[,'y'] )
+                      Parasite[,'y'] %in%  RBC[,'y'] )
 
- if(length(id_RBC) > 0){
+  ###
+ if(length(id_RBC) > 0 | length(id_Parasite) > 0 ){
    RBC[id_RBC,]$type<- "I"
    RBC[id_RBC,]$infected<- T
    RBC[id_RBC,]$time_infected<- RBC[id_RBC,]$time_infected + 1
@@ -89,19 +99,18 @@ Infection <- function(Pop){
 
 full_list <- NULL
 
-for (k in seq(1,500)){
-  Pop <- Movement(Pop)
-  Pop$time_alive <- Pop$time_alive+1
+for (k in seq(1,10)){
   Infection_DF <- Infection(Pop)
+  Pop$type<-  Infection_DF$type
   Pop$x <-   Infection_DF$x
   Pop$y <-   Infection_DF$y
-  
-  Pop$type<-   Infection_DF$type
-  
+  Pop$time_alive <- Pop$time_alive+1
   Pop$time_infected <-  Infection_DF$time_infected
   Pop$infected <-  Infection_DF$infected
-  Pop$infect <-   Infection_DF$infect
+  Pop$infect <-   Infection_DF$infect 
   Pop$time <- k
+  Pop <- Movement(Pop)
+
   full_list[[k]] <-Pop
 
 }
@@ -109,7 +118,7 @@ for (k in seq(1,500)){
 Pop_All <- do.call(rbind,full_list )
 
 b<- ggplot(Pop_All, aes(x= x, y= y,color=type))+
-  geom_point(size=5)+
+  geom_point(size=1)+
   scale_color_manual(values=c('I'='green',
                               'R'='red',
                               'P'='blue'))+
