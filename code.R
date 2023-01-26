@@ -24,8 +24,8 @@ Pop<-
 ###Let's try getting them to move?
 Movement<- function(Pop){
 
-  move_x <- sample(x = c(-2, 0, 2), size = 100,replace=TRUE)
-  move_y <- sample(x = c(-2, 0, 2), size = 100,replace=TRUE)
+  move_x <- sample(x = c(-1, 0, 1), size = 100,replace=TRUE)
+  move_y <- sample(x = c(-1, 0, 1), size = 100,replace=TRUE)
   
   Pop[,'x'] <- Pop[,'x'] + move_x
   Pop[,'y'] <- Pop[,'y'] + move_y
@@ -35,19 +35,19 @@ Movement<- function(Pop){
     
     #If going out of the right boundary
     if (Pop[p,'x'] < 100){
-      Pop[p,'x'] <- 98
+      Pop[p,'x'] <- 99
     }
     #If going out of the left boundary
     if (Pop[p,'x'] < 1){
-      Pop[p,'x'] <- 3
+      Pop[p,'x'] <- 2
     }
     #If going out of the top boundary
     if (Pop[p,'y'] < 100){
-      Pop[p,'y'] <- 98
+      Pop[p,'y'] <- 99
     }
     #If going out of the bottom boundary
     if (Pop[p,'y'] < 1){
-      Pop[p,'y'] <- 3
+      Pop[p,'y'] <- 2
     }
   return (Pop)
   }
@@ -55,28 +55,32 @@ Movement<- function(Pop){
 
 Infection <- function(Pop){
   RBC <- subset(Pop, Pop$type=='R')
-  
   Parasite <- subset(Pop,Pop$type=='P')
- 
+  Infected_RBC <- subset(Pop,Pop$type=='I')
   
   id_RBC <- which(RBC[,'x'] %in%  Parasite[,'x'] &
           RBC[,'y'] %in%  Parasite[,'y'] )
+  
   id_Parasite<- which(Parasite[,'x'] %in%  RBC[,'x'] &
                         Parasite[,'y'] %in%  RBC[,'y'] )
 
- if(length(id_RBC) >0){
+ if(length(id_RBC) > 0){
    RBC[id_RBC,]$type<- "I"
-   
    RBC[id_RBC,]$infected<- T
-   RBC[id_RBC,]$time_infected<- RBC[id_RBC,]$time_infected+1
+   RBC[id_RBC,]$time_infected<- RBC[id_RBC,]$time_infected + 1
+  
    Parasite[id_Parasite,]$infect <-T
    Parasite[id_Parasite,]$x <-NA
    Parasite[id_Parasite,]$y <-NA
    
-   Pop <- rbind(RBC,Parasite)
+   Pop <- rbind(RBC,Parasite,Infected_RBC)
+   Pop  <- Pop[order(  Pop $individuals),]
+   
  }
   else{
-    Pop <- rbind(RBC,Parasite)
+    Pop <- rbind(RBC,Parasite,Infected_RBC)
+    Pop  <- Pop[order(  Pop $individuals),]
+    
   }
   return(Pop)
   
@@ -85,13 +89,16 @@ Infection <- function(Pop){
 
 full_list <- NULL
 
-for (k in seq(1,10)){
+for (k in seq(1,500)){
   Pop <- Movement(Pop)
   Pop$time_alive <- Pop$time_alive+1
   Infection_DF <- Infection(Pop)
+  Pop$x <-   Infection_DF$x
+  Pop$y <-   Infection_DF$y
+  
   Pop$type<-   Infection_DF$type
   
-  Pop$time_infected <-   Infection_DF$time_infected
+  Pop$time_infected <-  Infection_DF$time_infected
   Pop$infected <-  Infection_DF$infected
   Pop$infect <-   Infection_DF$infect
   Pop$time <- k
@@ -101,6 +108,10 @@ for (k in seq(1,10)){
 
 Pop_All <- do.call(rbind,full_list )
 
-ggplot(Pop_All, aes(x= x, y= y, color=type))+
-  geom_point(size=2)+transition_time(time)+  ease_aes('linear')
-  
+b<- ggplot(Pop_All, aes(x= x, y= y,color=type))+
+  geom_point(size=5)+
+  scale_color_manual(values=c('I'='green',
+                              'R'='red',
+                              'P'='blue'))+
+                              transition_time(time)+ theme_void()+ labs(title = 'Year: {frame_time}')
+anim_save('b.gif', animation = last_animation())
